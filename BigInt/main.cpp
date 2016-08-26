@@ -11,7 +11,7 @@
 #include <cassert>
 
 #define ENABLE_UNITTESTS 1
-#define UNITTEST_REPORT_ON_SUCCESS 0
+#define UNITTEST_REPORT_ON_SUCCESS 1
 #include "unittest.hpp"
 
 namespace storage {
@@ -239,7 +239,7 @@ public:
             storage::storeIntParts(sum, carry, sections[i]);
         }
         // If carry value remaining, push back as a new section "digit cluster"
-        if (carry) sections.push_back(carry);
+        if (carry || !sections.size()) sections.push_back(carry);
         return *this;
     }
     static UNITTEST_METHOD(scalarAdd) {
