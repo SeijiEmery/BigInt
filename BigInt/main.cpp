@@ -245,36 +245,36 @@ public:
     static UNITTEST_METHOD(scalarAdd) {
         
         BigInt a { 15 };
-        TEST_ASSERT_EQ(a.sections.size(), 1);
-        TEST_ASSERT_EQ(a.sections[0], 15);
+        TEST_ASSERT_EQ(a.sections.size(), 1, "bad initial size!");
+        TEST_ASSERT_EQ(a.sections[0], 15, "bad init value");
         
         a += 3;
-        TEST_ASSERT_EQ(a.sections.size(), 1);
-        TEST_ASSERT_EQ(a.sections[0], 18);
+        TEST_ASSERT_EQ(a.sections.size(), 1, "bad size after += 3");
+        TEST_ASSERT_EQ(a.sections[0], 18, "+= 3");
         
         a += 12;
-        TEST_ASSERT_EQ(a.sections.size(), 1);
-        TEST_ASSERT_EQ(a.sections[0], 30);
+        TEST_ASSERT_EQ(a.sections.size(), 1, "bad size after += 12");
+        TEST_ASSERT_EQ(a.sections[0], 30, "+= 12");
         
         a += (((size_t)1 << storage::STORAGE_BITS) - 1);
-        TEST_ASSERT_EQ(a.sections.size(), 2);
-        TEST_ASSERT_EQ(a.sections[0], 29);
-        TEST_ASSERT_EQ(a.sections[1], 1);
+        TEST_ASSERT_EQ(a.sections.size(), 2, "should overflow to 2 values");
+        TEST_ASSERT_EQ(a.sections[0], 29, "low  value (post overflow)");
+        TEST_ASSERT_EQ(a.sections[1], 1,  "high value (post overflow)");
         
         a.sections.pop_back();
         a.sections.pop_back();
         TEST_ASSERT_EQ(a.sections.size(), 0, "bad section size!");
         
         a += 0;
-        TEST_ASSERT_EQ(a.sections.size(), 1);
-        TEST_ASSERT_EQ(a.sections[0], 0);
+        TEST_ASSERT_EQ(a.sections.size(), 1, "bad size after += 0");
+        TEST_ASSERT_EQ(a.sections[0], 0,     "probably dead now");
         
         a.sections.pop_back();
-        TEST_ASSERT_EQ(a.sections.size(), 0);
+        TEST_ASSERT_EQ(a.sections.size(), 0, "bad size (see above)");
         
         a += 1;
-        TEST_ASSERT_EQ(a.sections.size(), 1);
-        TEST_ASSERT_EQ(a.sections[0], 1);
+        TEST_ASSERT_EQ(a.sections.size(), 1, "bad size after += 1");
+        TEST_ASSERT_EQ(a.sections[0], 1,     "+= 1");
         
     } UNITTEST_END_METHOD
     
@@ -362,12 +362,12 @@ public:
     }
     
     static UNITTEST_MAIN_METHOD(BigInt) {
-//        RUN_UNITTEST(initFromString,   UNITTEST_INSTANCE);
-        RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE);
-        RUN_UNITTEST(scalarAdd,        UNITTEST_INSTANCE);
-        RUN_UNITTEST(scalarMul,        UNITTEST_INSTANCE);
-        RUN_UNITTEST(scalarDiv,        UNITTEST_INSTANCE);
-        RUN_UNITTEST(writeString,      UNITTEST_INSTANCE);
+        RUN_UNITTEST(scalarAdd, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(scalarMul, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(scalarDiv, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(initFromString, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(writeString, UNITTEST_INSTANCE);
     } UNITTEST_END_METHOD
 };
 
