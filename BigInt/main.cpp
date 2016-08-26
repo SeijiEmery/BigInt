@@ -86,15 +86,6 @@ public:
     }
     BigInt (const BigInt & v) : sections(v.sections), sign(v.sign) {}
     
-    static UNITTEST_MAIN_METHOD(BigInt) {
-        RUN_UNITTEST(initFromString,   UNITTEST_INSTANCE);
-        RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE);
-        RUN_UNITTEST(scalarAdd,        UNITTEST_INSTANCE);
-        RUN_UNITTEST(scalarMul,        UNITTEST_INSTANCE);
-        RUN_UNITTEST(scalarDiv,        UNITTEST_INSTANCE);
-        RUN_UNITTEST(writeString,      UNITTEST_INSTANCE);
-    } UNITTEST_END_METHOD
-    
     void initFromString (const char*& s) {
         sections.clear();
         
@@ -108,8 +99,48 @@ public:
             pushDecimalDigit(s[0] - '0'), ++s;
     }
     static UNITTEST_METHOD(initFromString) {
-//        TEST_ASSERT(false, "Should fail");
-        TEST_ASSERT(true, "Should succeed");
+        
+        BigInt a { "1" };
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 1);
+        
+        BigInt b { "42" };
+        TEST_ASSERT_EQ(b.sections.size(), 1);
+        TEST_ASSERT_EQ(b.sections[0], 42);
+        
+        // If this changes next tests won't work
+        TEST_ASSERT_EQ(sizeof(typeof(b.sections[0])), 4, "base size changed? (expected 32-bit storage, 64-bit ops)");
+        
+        BigInt c { "4294967297" }; // 1 << 32 + 1
+        TEST_ASSERT_EQ(c.sections.size(), 2);
+        TEST_ASSERT_EQ(c.sections[0], 1);
+        TEST_ASSERT_EQ(c.sections[1], 2);
+        
+        BigInt d { "64424509677" }; // (1 << 32) * 15 + 237
+        TEST_ASSERT_EQ(d.sections.size(), 2);
+        TEST_ASSERT_EQ(d.sections[0], 237);
+        TEST_ASSERT_EQ(d.sections[1], 15);
+        
+        BigInt e { "-64424509677" };
+        TEST_ASSERT_EQ(e.sign, true);
+        TEST_ASSERT_EQ(e.sections.size(), 2);
+        TEST_ASSERT_EQ(e.sections[0], 237);
+        TEST_ASSERT_EQ(e.sections[1], 15);
+        
+        BigInt f { "0" };
+        TEST_ASSERT_EQ(f.sections.size(), 1);
+        TEST_ASSERT_EQ(f.sections[0], 0);
+        
+        BigInt g { "64424509440" }; // (1 << 32) * 15
+        TEST_ASSERT_EQ(g.sections.size(), 2);
+        TEST_ASSERT_EQ(g.sections[0], 0);
+        TEST_ASSERT_EQ(g.sections[1], 15);
+        
+        BigInt h { "4294967296" }; // 1 << 32 exact
+        TEST_ASSERT_EQ(h.sections.size(), 2);
+        TEST_ASSERT_EQ(h.sections[0], 0);
+        TEST_ASSERT_EQ(h.sections[1], 1);
+        
     } UNITTEST_END_METHOD
     
     void pushDecimalDigit (storage::smallInt_t digit) {
@@ -130,7 +161,7 @@ public:
         std::cout << " ]\n";
     }
     static UNITTEST_METHOD(pushDecimalDigit) {
-        TEST_ASSERT_EQ(2 + 2, 4, "2 + 2 = 5?");
+
     } UNITTEST_END_METHOD
     
     BigInt& operator+= (storage::smallInt_t v) {
@@ -231,6 +262,15 @@ public:
         _tempStr.push_back('\0');
         return _tempStr.data();
     }
+    
+    static UNITTEST_MAIN_METHOD(BigInt) {
+        RUN_UNITTEST(initFromString,   UNITTEST_INSTANCE);
+        RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE);
+        RUN_UNITTEST(scalarAdd,        UNITTEST_INSTANCE);
+        RUN_UNITTEST(scalarMul,        UNITTEST_INSTANCE);
+        RUN_UNITTEST(scalarDiv,        UNITTEST_INSTANCE);
+        RUN_UNITTEST(writeString,      UNITTEST_INSTANCE);
+    } UNITTEST_END_METHOD
 };
 
 std::ostream& operator << (std::ostream& os, BigInt& v) {
