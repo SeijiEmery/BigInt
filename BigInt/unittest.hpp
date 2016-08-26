@@ -120,18 +120,18 @@
     private:
         void reportTestResults () {
             if (passed != attempted)
-                std::cerr << "Unittest FAILED: " << name << ":  "
+                std::cerr << "Unittest FAILED: " << name << ":\t"
                     << passed << " / " << attempted << " tests passed.\n";
         #ifdef UNITTEST_REPORT_ON_SUCCESS
             else
-                std::cerr << "Unittest PASSED: " << name << ":  All tests passed.\n";
+                std::cerr << "Unittest PASSED: " << name << ":\tAll tests passed.\n";
         #endif // UNITTEST_REPORT_ON_SUCCESS
         }
     };
 
     #define UNITTEST_MAIN_METHOD(name) \
     UnitTest_Results unittest () { \
-        UnitTest_Results _testResults { #name "::unittest" };
+        UnitTest_Results _testResults { #name };
 
     #define UNITTEST_METHOD(name) \
     UnitTest_Results unittest_##name () { \
