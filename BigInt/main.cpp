@@ -382,21 +382,24 @@ public:
         
     } UNITTEST_END_METHOD
     
-    
-    BigInt& operator /= (storage::smallInt_t v) {
-        storage::smallInt_t rem = 0;
+    BigInt& scalarDiv (storage::smallInt_t d, storage::smallInt_t& rem) {
+        rem = 0;
         for (auto i = sections.size(); i > 0; --i) {
-            auto x = storage::fromIntParts(rem, sections[i-1]);
-    
-            sections[i-1] = (storage::smallInt_t)(x / v);
-            rem           = (storage::smallInt_t)(x % v);
+            auto n = storage::fromIntParts(rem, sections[i-1]);
+            sections[i-1] = (storage::smallInt_t)(n / (storage::bigInt_t)d);
+            rem           = (storage::smallInt_t)(n % (storage::bigInt_t)d);
         }
-        // Pop off zero values
         while (sections.size() > 0 && sections.back() == 0)
             sections.pop_back();
         return *this;
     }
+    BigInt& operator /= (storage::smallInt_t v) {
+        storage::smallInt_t r;
+        return scalarDiv(v, r);
+    }
     static UNITTEST_METHOD(scalarDiv) {
+        
+        // Unit tests TBD
     
     } UNITTEST_END_METHOD
     
@@ -424,20 +427,29 @@ public:
             assert(temp.sections.size() == sections.size());
             auto s0 = str.size();
             
-            while (temp.sections.size() && temp.sections[0] != 0) {
-                str.push_back('0' + temp.sections[0] % 10);
-                temp /= 10;
+            storage::smallInt_t rem;
+            while (temp.sections.size()) {
+                temp.scalarDiv(10, rem);
+                str.push_back('0' + rem);
             }
             
             // And then reverse to get correct value
-            for (auto i = s0, j = str.size(); i < j; ++i, --j)
+            for (auto i = s0, j = str.size()-1; i < j; ++i, --j)
                 std::swap(str[i], str[j]);
             return str;
         }
     }
     static UNITTEST_METHOD(writeString) {
         
+        // Unit tests TBD
+        
     } UNITTEST_END_METHOD
+    
+    // Vector (BigInt * BigInt) Addition, Multiplication, Division TBD
+    
+    // BigInt 2's complement negative numbers TBD
+    
+    // BigInt comparison TBD
     
 private:
     std::vector<char> _tempStr; // Not threadsafe!
@@ -464,12 +476,6 @@ std::ostream& operator << (std::ostream& os, BigInt& v) {
     return os << v.toString();
 }
 
-//UNITTEST_METHOD(runAllTests) {
-//    RUN_UNITTEST_MAIN(storage, UNITTEST_INSTANCE);
-//    RUN_UNITTEST_MAIN(BigInt,  UNITTEST_INSTANCE);
-//    // more tests to go here...
-//} UNITTEST_END_METHOD
-
 bool runAllTests () {
     return
         RUN_UNITTEST_MAIN(storage) &&
@@ -480,15 +486,18 @@ bool runAllTests () {
 int main(int argc, const char * argv[]) {
     if (!runAllTests())
         return -1;
-//    if (!RUN_UNITTEST(runAllTests))
-//        return -1;
     
-    auto x = BigInt { "-123456789" };
+    auto x = BigInt { "-123456789123456789123456789123456789123456789" };
     auto y = BigInt { "2" };
     
     std::cout << "x = " << x << '\n';
     std::cout << "y = " << y << '\n';
     
-    std::cout << "Hello, World!\n";
+    unsigned i = 0; auto v = BigInt { "1" };
+    while (i < 130) {
+        std::cout << "2^" << i << " = " << v << '\n';
+        v *= 2;
+        i += 1;
+    }
     return 0;
 }
