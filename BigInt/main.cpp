@@ -237,16 +237,7 @@ public:
     } UNITTEST_END_METHOD
     
     BigInt& operator+= (storage::smallInt_t v) {
-        
-        auto carry = v;
-        for (auto i = 0; carry && i < sections.size(); ++i) {
-            storage::bigInt_t sum = (storage::bigInt_t)sections[i] + (storage::bigInt_t)carry;
-            
-            storage::storeIntParts(sum, carry, sections[i]);
-        }
-        // If carry value remaining, push back as a new section "digit cluster"
-        if (carry || !sections.size()) sections.push_back(carry);
-        return *this;
+        return multiplyAdd(1, v);
     }
     static UNITTEST_METHOD(scalarAdd) {
         
@@ -299,16 +290,7 @@ public:
     } UNITTEST_END_METHOD
     
     BigInt& operator *= (storage::smallInt_t v) {
-        storage::smallInt_t carry = 0;
-        for (auto i = 0; i < sections.size(); ++i) {
-            auto r = (storage::bigInt_t)sections[i] * (storage::bigInt_t)v + (storage::bigInt_t)carry;
-            
-            storage::storeIntParts(r, carry, sections[i]);
-//            sections[i] = r & SECTION_BITMASK_LOW;
-//            carry       = r & SECTION_BITMASK_HIGH;
-        }
-        if (carry) sections.push_back(carry);
-        return *this;
+        return multiplyAdd(v, 0);
     }
     static UNITTEST_METHOD(scalarMul) {
         
@@ -358,7 +340,21 @@ public:
         TEST_ASSERT_EQ(b.sections[3], x3, "b[3] post-multiply");
         TEST_ASSERT_EQ(b.sections[4], x4, "b[4] post-multiply");
         TEST_ASSERT_EQ(b.sections[5], c4, "b[5] post-multiply");
+        
+    } UNITTEST_END_METHOD
     
+    // Executes a multiply + add operation: multiplies each digit in BigNum by base, adds an additional scalar value (carry).
+    // Incidentally, multiply is just this with carry = 0, and add scalar is this with base = 1.
+    BigInt& multiplyAdd (storage::smallInt_t base, storage::smallInt_t carry) {
+        for (auto i = 0; i < sections.size(); ++i) {
+            auto r = (storage::bigInt_t)sections[i] * (storage::bigInt_t)base + (storage::bigInt_t)carry;
+            storage::storeIntParts(r, carry, sections[i]);
+        }
+        if (carry || !sections.size()) sections.push_back(carry);
+        return *this;
+    }
+    static UNITTEST_METHOD(scalarMultiplyAdd) {
+        
     } UNITTEST_END_METHOD
     
     
