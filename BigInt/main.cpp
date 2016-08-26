@@ -22,6 +22,7 @@ typedef uint64_t bigInt_t;    // BigInt operation type (mul + add ops need 2x pr
     
 constexpr size_t LOW_BITMASK = (1L << STORAGE_BITS) - 1;
 constexpr size_t HIGH_BITMASK = ~LOW_BITMASK;
+constexpr smallInt_t MAX = (smallInt_t)((1L << STORAGE_BITS) - 1);
     
 UNITTEST_METHOD(verifyStorageValueTypes) {
     TEST_ASSERT_EQ(STORAGE_BITS, 32, "storage size changed! (tests assume 32-bit");
@@ -32,6 +33,11 @@ UNITTEST_METHOD(verifyStorageValueTypes) {
     TEST_ASSERT_EQ((bigInt_t)(1L << STORAGE_BITS), 1L << STORAGE_BITS, "op size not big enough");
     TEST_ASSERT_EQ(LOW_BITMASK & HIGH_BITMASK, 0, "LOW_BITMASK overlaps with HIGH_BITMASK");
     TEST_ASSERT_EQ(LOW_BITMASK | HIGH_BITMASK, ((size_t)0) - 1, "LOW_BITMASK does not have perfect coverage with HIGH_BITMASK");
+    
+    TEST_ASSERT(MAX != 0, "storage::MAX cannot fit in storage value");
+    TEST_ASSERT_EQ((bigInt_t)MAX, (bigInt_t)((1L << STORAGE_BITS) - 1), "invalid storage::MAX");
+    TEST_ASSERT_EQ(MAX + 1, 0, "storage::MAX + 1 should wrap to 0");
+    
 } UNITTEST_END_METHOD
 
 bigInt_t fromIntParts (smallInt_t high, smallInt_t low) {
@@ -276,6 +282,20 @@ public:
         TEST_ASSERT_EQ(a.sections.size(), 1, "bad size after += 1");
         TEST_ASSERT_EQ(a.sections[0], 1,     "+= 1");
         
+        // note: this is reversed:
+        //         bit 0-31      bit 32-63     bit 64-95     bit 96-127
+        BigInt b { storage::MAX, storage::MAX, storage::MAX, 125 };
+        TEST_ASSERT_EQ(b.sections.size(), 4, "b invalid storage size?!");
+        TEST_ASSERT_EQ(b.sections[0], storage::MAX, "b initial min value");
+        TEST_ASSERT_EQ(b.sections[3], 125, "b initial max value");
+        
+        b += 6;
+        TEST_ASSERT_EQ(b.sections.size(), 4, "b storage size should not change");
+        TEST_ASSERT_EQ(b.sections[0], 5, "bit 0: storage::MAX should overflow to 5");
+        TEST_ASSERT_EQ(b.sections[1], 0, "bit 32: storage::MAX should overflow to 0 (carry +1)");
+        TEST_ASSERT_EQ(b.sections[2], 0, "bit 64: storage::MAX should overflow to 0 (carry +1)");
+        TEST_ASSERT_EQ(b.sections[3], 126, "bit 96: should get carry +1");
+        
     } UNITTEST_END_METHOD
     
     BigInt& operator *= (storage::smallInt_t v) {
@@ -291,6 +311,18 @@ public:
         return *this;
     }
     static UNITTEST_METHOD(scalarMul) {
+        
+        BigInt a { 1 };
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 1);
+        
+        a *= 15;
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 15);
+        
+        
+        
+        
     
     } UNITTEST_END_METHOD
     
