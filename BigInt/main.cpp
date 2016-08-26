@@ -85,50 +85,8 @@ UNITTEST_MAIN_METHOD(storage::unittests) {
     
 }; // namespace storage
 
-struct typeinfo_t {
-    
-};
-
-struct member_typeinfo_t {
-    std::string name;
-    typeinfo_t type;
-    
-    member_typeinfo_t (std::string name, typeinfo_t type) : name(name), type(type) {}
-};
-
-template <typename T>
-struct typeinfo {
-    static typeinfo_t value;
-};
-
-typedef std::vector<member_typeinfo_t> member_typeinfo_tbl;
-
-#define METACLASS_INFO struct classinfo {
-#define CLASS_MEMBER_INFO const member_typeinfo_tbl members = {
-#define END_CLASS_MEMBER_INFO };
-#define END_METACLASS_INFO };
-
-#define DESCRIBE_CLASS_MEMBER(member) member_typeinfo_t { #member, typeinfo<typeof(member)>::value },
-
-#define METACLASS_MEMBER_INFO const member_typeinfo_tbl classinfo_members = {
-#define END_METACLASS_MEMBER_INFO };
-
-#define DESCRIBE_MEMBERS(args...) \
-    const member_typeinfo tbl classinfo_members = { \
-
 
 class BigInt {
-    METACLASS_MEMBER_INFO
-        DESCRIBE_CLASS_MEMBER(sections)
-        DESCRIBE_CLASS_MEMBER(sign)
-    END_METACLASS_MEMBER_INFO
-    
-    //    struct classinfo {
-    //        const member_typeinfo_tbl members = {
-    //            { "sections", typeinfo<std::vector<storage::smallInt_t>>::value },
-    //            { "sign", typeinfo<typeof(sign)>::value },
-    //        };
-    //    };
     std::vector<storage::smallInt_t> sections;
     bool sign = false;
 public:
