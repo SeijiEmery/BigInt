@@ -10,6 +10,8 @@
 #include <vector>
 #include <cassert>
 
+#define ENABLE_UNITTESTS
+#include "unittest.hpp"
 
 namespace storage {
 
@@ -42,6 +44,15 @@ public:
     }
     BigInt (const BigInt & v) : sections(v.sections), sign(v.sign) {}
     
+    static UNITTEST_MAIN_METHOD(BigInt) {
+        RUN_UNITTEST(initFromString,   UNITTEST_INSTANCE);
+        RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE);
+        RUN_UNITTEST(scalarAdd,        UNITTEST_INSTANCE);
+        RUN_UNITTEST(scalarMul,        UNITTEST_INSTANCE);
+        RUN_UNITTEST(scalarDiv,        UNITTEST_INSTANCE);
+        RUN_UNITTEST(writeString,      UNITTEST_INSTANCE);
+    } UNITTEST_END_METHOD
+    
     void initFromString (const char*& s) {
         sections.clear();
         
@@ -54,6 +65,11 @@ public:
         while (!(s[0] < '0' || s[0] > '9'))
             pushDecimalDigit(s[0] - '0'), ++s;
     }
+    static UNITTEST_METHOD(initFromString) {
+        TEST_ASSERT(false, "Should fail");
+        TEST_ASSERT(true, "Should succeed");
+    } UNITTEST_END_METHOD
+    
     void pushDecimalDigit (storage::smallInt_t digit) {
         assert(digit <= 9);
         if (!sections.size())
@@ -71,6 +87,10 @@ public:
         }
         std::cout << " ]\n";
     }
+    static UNITTEST_METHOD(pushDecimalDigit) {
+    
+    } UNITTEST_END_METHOD
+    
     BigInt& operator+= (storage::smallInt_t v) {
         for (auto i = 0; v && i < sections.size(); ++i) {
             auto p = sections[i] + v;
@@ -83,6 +103,10 @@ public:
         if (v) sections.push_back(v);
         return *this;
     }
+    static UNITTEST_METHOD(scalarAdd) {
+    
+    } UNITTEST_END_METHOD
+    
     BigInt& operator *= (storage::smallInt_t v) {
         storage::smallInt_t carry = 0;
         for (auto i = 0; i < sections.size(); ++i) {
@@ -95,6 +119,11 @@ public:
         if (carry) sections.push_back(carry);
         return *this;
     }
+    static UNITTEST_METHOD(scalarMul) {
+    
+    } UNITTEST_END_METHOD
+    
+    
     BigInt& operator /= (storage::smallInt_t v) {
         storage::smallInt_t rem = 0;
         for (auto i = sections.size(); i > 0; --i) {
@@ -108,6 +137,9 @@ public:
             sections.pop_back();
         return *this;
     }
+    static UNITTEST_METHOD(scalarDiv) {
+    
+    } UNITTEST_END_METHOD
     
     // Signed multiply / divide operations
     BigInt& operator *= (int v) {
@@ -123,15 +155,17 @@ public:
     
     std::vector<char>& writeString (std::vector<char>& str) {
         if (sign) str.push_back('-');
-        auto s0 = str.size();
         
         if (!sections.size()) {
             str.push_back('0');
             return str;
         } else {
             // Using a copy (this operation is destructive), write digits in reverse order
-            BigInt temp(*this);
-            while (temp.sections.size()) {
+            BigInt temp { *this };
+            assert(temp.sections.size() == sections.size());
+            auto s0 = str.size();
+            
+            while (temp.sections.size() && temp.sections[0] != 0) {
                 str.push_back('0' + temp.sections[0] % 10);
                 temp /= 10;
             }
@@ -142,9 +176,13 @@ public:
             return str;
         }
     }
+    static UNITTEST_METHOD(writeString) {
+        
+    } UNITTEST_END_METHOD
     
 private:
     std::vector<char> _tempStr; // Not threadsafe!
+public:
     const char* toString () {
         _tempStr.clear();
         writeString(_tempStr);
@@ -153,12 +191,20 @@ private:
     }
 };
 
+std::ostream& operator << (std::ostream& os, BigInt& v) {
+    return os << v.toString();
+}
+
 
 int main(int argc, const char * argv[]) {
+    if (!BigInt::unittest().checkResults())
+        return -1;
     
     auto x = BigInt { "-123456789" };
     auto y = BigInt { "2" };
     
+    std::cout << "x = " << x << '\n';
+    std::cout << "y = " << y << '\n';
     
     std::cout << "Hello, World!\n";
     return 0;
