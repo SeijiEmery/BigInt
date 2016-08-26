@@ -1,24 +1,23 @@
 //
 //  unittest.hpp
-//  BigInt
 //
 //  Created by semery on 8/25/16.
 //  Copyright © 2016 Seiji Emery. All rights reserved.
 //
 
-#ifndef unittest_h
-#define unittest_h
+#ifndef __unittest_hpp__
+#define __unittest_hpp__
 
 // Mini unit-testing API
 //
-// ENABLE_UNITTESTS (#define / #undef)
+// ENABLE_UNITTESTS (#define 1 / 0)
 //   enable / disable unit testing.
 //   If disabled, no unit testing code will be generated except testing stubs with your user code,
 //   which will be unused and should get eliminated by the linker.
 //   I'm assuming that we can't wrap a macro expansion in #ifdef, or we would use that to eliminate
 //   all unittest code.
 //
-// UNITTEST_REPORT_ON_SUCCESS (#define / #undef)
+// UNITTEST_REPORT_ON_SUCCESS (#define 1 / 0)
 //   If enabled, prints "All tests passed." when a test case passes; otherwise, is silent and
 //   only prints when a testcase contained errors. Prints to std::cerr in either case.
 //
@@ -80,91 +79,109 @@
 //   Usable only within a UNITTEST_METHOD block.
 //
 
-#ifdef ENABLE_UNITTESTS
+#ifndef ENABLE_UNITTESTS
+#define ENABLE_UNITTESTS 1
+#endif
 
-    #include <iostream>
+#ifndef UNITTEST_REPORT_ON_SUCCESS
+#define UNITTEST_REPORT_ON_SUCCESS 0
+#endif
 
-    struct UnitTest_Results {
-        const char* name;
-        unsigned passed = 0, attempted = 0;
+#if ENABLE_UNITTESTS
 
-        UnitTest_Results (const char* name) : name(name) {}
+#include <iostream>
 
-        void assertThat (bool cond, std::string msg, const char* file, size_t line) {
-            if (cond) ++attempted, ++passed;
-            else      ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": " << msg << '\n';
-        }
-        template <typename A, typename B>
-        void assertEq (const A& a, const B& b, std::string msg, const char* file, size_t line) {
-            if (a == b) ++attempted, ++passed;
-            else        ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": '"
-                << a << "' != '" << b << "' " << msg << '\n';
-        }
+struct UnitTest_Results {
+    const char* name;
+    unsigned passed = 0, attempted = 0;
+    
+    UnitTest_Results (const char* name) : name(name) {}
+    
+    void assertThat (bool cond, std::string msg, const char* file, size_t line) {
+        if (cond) ++attempted, ++passed;
+        else      ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": " << msg << '\n';
+    }
+    void assertThat (bool cond, const char* file, size_t line) {
+        if (cond) ++attempted, ++passed;
+        else      ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << '\n';
+    }
+    template <typename A, typename B>
+    void assertEq (const A& a, const B& b, std::string msg, const char* file, size_t line) {
+        if (a == b) ++attempted, ++passed;
+        else        ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": '"
+            << a << "' != '" << b << "' " << msg << '\n';
+    }
+    template <typename A, typename B>
+    void assertEq (const A& a, const B& b, const char* file, size_t line) {
+        if (a == b) ++attempted, ++passed;
+        else        ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": '"
+            << a << "' != '" << b << "'\n";
+    }
+    
+    // Print results (optional), and collect results into another collection @testCollection.
+    // (eg. collect multiple sub test results into a single test result. passed / attempted
+    //  will be incremented by 1 for each collection that testCollection is called on, with
+    //  passed incremented iff passed == attempted for that test).
+    UnitTest_Results& checkResults (UnitTest_Results& testCollection, bool printResults = true) {
+        if (printResults) reportTestResults();
         
-        // Print results (optional), and collect results into another collection @testCollection.
-        // (eg. collect multiple sub test results into a single test result. passed / attempted
-        //  will be incremented by 1 for each collection that testCollection is called on, with
-        //  passed incremented iff passed == attempted for that test).
-        UnitTest_Results& checkResults (UnitTest_Results& testCollection, bool printResults = true) {
-            if (printResults) reportTestResults();
-            
-            ++testCollection.attempted;
-            if (passed == attempted) ++testCollection.passed;
-            return testCollection;
-        }
-        // Print results (optional), and return whether all results
-        bool checkResults (bool printResults = true) {
-            if (printResults) reportTestResults();
-            return passed == attempted;
-        }
-    private:
-        void reportTestResults () {
-            if (passed != attempted)
-                std::cerr << "Unittest FAILED: " << name << ":\t"
-                    << passed << " / " << attempted << " tests passed.\n";
-        #ifdef UNITTEST_REPORT_ON_SUCCESS
-            else
-                std::cerr << "Unittest PASSED: " << name << ":\tAll tests passed.\n";
-        #endif // UNITTEST_REPORT_ON_SUCCESS
-        }
-    };
+        ++testCollection.attempted;
+        if (passed == attempted) ++testCollection.passed;
+        return testCollection;
+    }
+    // Print results (optional), and return whether all results
+    bool checkResults (bool printResults = true) {
+        if (printResults) reportTestResults();
+        return passed == attempted;
+    }
+private:
+    void reportTestResults () {
+        if (passed != attempted)
+            std::cerr << "Unittest FAILED: " << name << ":\t"
+            << passed << " / " << attempted << " tests passed.\n";
+#if UNITTEST_REPORT_ON_SUCCESS
+        else
+            std::cerr << "Unittest PASSED: " << name << ":\tAll tests passed.\n";
+#endif // UNITTEST_REPORT_ON_SUCCESS
+    }
+};
 
-    #define UNITTEST_MAIN_METHOD(name) \
-    UnitTest_Results unittest () { \
-        UnitTest_Results _testResults { #name };
+#define UNITTEST_MAIN_METHOD(name) \
+UnitTest_Results unittest () { \
+UnitTest_Results _testResults { #name };
 
-    #define UNITTEST_METHOD(name) \
-    UnitTest_Results unittest_##name () { \
-        UnitTest_Results _testResults { #name };
+#define UNITTEST_METHOD(name) \
+UnitTest_Results unittest_##name () { \
+UnitTest_Results _testResults { #name };
 
-    #define UNITTEST_END_METHOD \
-        return _testResults; }
+#define UNITTEST_END_METHOD \
+return _testResults; }
 
-    #define RUN_UNITTEST(name, args...) \
-        unittest_##name().checkResults(args)
+#define RUN_UNITTEST(name, args...) \
+unittest_##name().checkResults(args)
 
-    #define RUN_UNITTEST_MAIN(name, args...) \
-        name::unittest().checkResults(args)
+#define RUN_UNITTEST_MAIN(name, args...) \
+name::unittest().checkResults(args)
 
-    #define UNITTEST_INSTANCE \
-        (_testResults)
+#define UNITTEST_INSTANCE \
+(_testResults)
 
-    #define TEST_ASSERT(args...) (_testResults.assertThat(args, __FILE__, __LINE__))
-    #define TEST_ASSERT_EQ(args...) (_testResults.assertEq(args, __FILE__, __LINE__))
+#define TEST_ASSERT(args...) (_testResults.assertThat(args, __FILE__, __LINE__))
+#define TEST_ASSERT_EQ(args...) (_testResults.assertEq(args, __FILE__, __LINE__))
 
 #else // ENABLE_UNITTESTS
 
-    #define UNITTEST_MAIN_METHOD(name) void unittest () {
-    #define UNITTEST_METHOD(name) void unittest_##name () {
-    #define UNITTEST_END_METHOD(name) }
+#define UNITTEST_MAIN_METHOD(name) void unittest () {
+#define UNITTEST_METHOD(name) void unittest_##name () {
+#define UNITTEST_END_METHOD }
 
-    #define RUN_UNITTEST(args...)
-    #define RUN_UNITTEST_MAIN(args...)
-    #define UNITTEST_INSTANCE (0)
+#define RUN_UNITTEST(args...) (true)
+#define RUN_UNITTEST_MAIN(args...) (true)
+#define UNITTEST_INSTANCE (0)
 
-    #define TEST_ASSERT(args...)
-    #define TEST_ASSERT_EQ(args...)
+#define TEST_ASSERT(args...)
+#define TEST_ASSERT_EQ(args...)
 
 #endif // ENABLE_UNITTESTS
 
-#endif /* unittest_h */
+#endif /* __unittest_hpp__ */
