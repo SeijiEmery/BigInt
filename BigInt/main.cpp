@@ -16,9 +16,9 @@
 
 namespace storage {
 
-constexpr size_t STORAGE_BITS = 16;
-typedef uint16_t smallInt_t;  // BigInt storage type
-typedef uint32_t bigInt_t;    // BigInt operation type (mul + add ops need 2x precision for overflow)
+constexpr size_t STORAGE_BITS = 32;
+typedef uint32_t smallInt_t;  // BigInt storage type
+typedef uint64_t bigInt_t;    // BigInt operation type (mul + add ops need 2x precision for overflow)
     
 constexpr size_t LOW_BITMASK = (1L << STORAGE_BITS) - 1;
 constexpr size_t HIGH_BITMASK = ~LOW_BITMASK;
@@ -26,6 +26,7 @@ constexpr size_t HIGH_BITMASK = ~LOW_BITMASK;
 bigInt_t fromIntParts (smallInt_t high, smallInt_t low) {
     return ((bigInt_t)high << STORAGE_BITS) | (bigInt_t)low;
 }
+    
 void storeIntParts (bigInt_t v, smallInt_t& high, smallInt_t& low) {
     high = (smallInt_t)(v & HIGH_BITMASK);
     low  = (smallInt_t)(v & LOW_BITMASK);
@@ -85,7 +86,11 @@ public:
         initFromString(ptr);
     }
     BigInt (const BigInt & v) : sections(v.sections), sign(v.sign) {}
+private:
+    // Private constructor for unit tests (unsafe for external code; would need to normalize values)
+    BigInt (std::initializer_list<storage::smallInt_t> values) : sections(values) {}
     
+public:
     void initFromString (const char*& s) {
         sections.clear();
         
@@ -161,23 +166,71 @@ public:
         std::cout << " ]\n";
     }
     static UNITTEST_METHOD(pushDecimalDigit) {
-
+        
+        BigInt a { 0 };
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        a.sections.pop_back();
+        
+        a.pushDecimalDigit(9);
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 9);
+        
+        a.pushDecimalDigit(1);
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 91);
+        
+        a.pushDecimalDigit(5);
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 915);
+        
     } UNITTEST_END_METHOD
     
     BigInt& operator+= (storage::smallInt_t v) {
-        for (auto i = 0; v && i < sections.size(); ++i) {
-            auto p = sections[i] + v;
+        
+        auto carry = v;
+        for (auto i = 0; carry && i < sections.size(); ++i) {
+            storage::bigInt_t sum = (storage::bigInt_t)sections[i] + (storage::bigInt_t)carry;
             
-            storage::storeIntParts(p, v, sections[i]);
-//            sections[i] = p & SECTION_BITMASK_LOW;
-//            v           = p & SECTION_BITMASK_HIGH;
+            storage::storeIntParts(sum, carry, sections[i]);
         }
         // If carry value remaining, push back as a new section "digit cluster"
-        if (v) sections.push_back(v);
+        if (carry) sections.push_back(carry);
         return *this;
     }
     static UNITTEST_METHOD(scalarAdd) {
-    
+        
+        BigInt a { 15 };
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 15);
+        
+        a += 3;
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 18);
+        
+        a += 12;
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 30);
+        
+        a += (((size_t)1 << storage::STORAGE_BITS) - 1);
+        TEST_ASSERT_EQ(a.sections.size(), 2);
+        TEST_ASSERT_EQ(a.sections[0], 29);
+        TEST_ASSERT_EQ(a.sections[1], 1);
+        
+        a.sections.pop_back();
+        a.sections.pop_back();
+        TEST_ASSERT_EQ(a.sections.size(), 0, "bad section size!");
+        
+        a += 0;
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 0);
+        
+        a.sections.pop_back();
+        TEST_ASSERT_EQ(a.sections.size(), 0);
+        
+        a += 1;
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 1);
+        
     } UNITTEST_END_METHOD
     
     BigInt& operator *= (storage::smallInt_t v) {
@@ -264,7 +317,7 @@ public:
     }
     
     static UNITTEST_MAIN_METHOD(BigInt) {
-        RUN_UNITTEST(initFromString,   UNITTEST_INSTANCE);
+//        RUN_UNITTEST(initFromString,   UNITTEST_INSTANCE);
         RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE);
         RUN_UNITTEST(scalarAdd,        UNITTEST_INSTANCE);
         RUN_UNITTEST(scalarMul,        UNITTEST_INSTANCE);
