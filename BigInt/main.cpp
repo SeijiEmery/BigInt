@@ -170,7 +170,7 @@ public:
         BigInt c { "4294967297" }; // 1 << 32 + 1
         TEST_ASSERT_EQ(c.sections.size(), 2);
         TEST_ASSERT_EQ(c.sections[0], 1);
-        TEST_ASSERT_EQ(c.sections[1], 2);
+        TEST_ASSERT_EQ(c.sections[1], 1);
         
         BigInt d { "64424509677" }; // (1 << 32) * 15 + 237
         TEST_ASSERT_EQ(d.sections.size(), 2);
@@ -203,18 +203,8 @@ public:
         assert(digit <= 9);
         if (!sections.size())
             sections.push_back(digit);
-        else {
-            operator+=(10);
-            operator*=(digit);
-        }
-        
-        std::cout << "Pushed digit '" << digit << "': '" << toString() << "' "
-            "sections = " << sections.size() << ": [ ";
-        for (auto i = 0; i < sections.size(); ++i) {
-            if (i != 0) std::cout << ", ";
-            std::cout << sections[i];
-        }
-        std::cout << " ]\n";
+        else
+            multiplyAdd(10, digit);
     }
     static UNITTEST_METHOD(pushDecimalDigit) {
         
