@@ -10,8 +10,8 @@
 #include <vector>
 #include <cassert>
 
-#define ENABLE_UNITTESTS
-//#define UNITTEST_REPORT_ON_SUCCESS
+#define ENABLE_UNITTESTS 1
+#define UNITTEST_REPORT_ON_SUCCESS 0
 #include "unittest.hpp"
 
 namespace storage {
@@ -60,6 +60,9 @@ typedef std::vector<member_typeinfo_t> member_typeinfo_tbl;
 
 #define METACLASS_MEMBER_INFO const member_typeinfo_tbl classinfo_members = {
 #define END_METACLASS_MEMBER_INFO };
+
+#define DESCRIBE_MEMBERS(args...) \
+    const member_typeinfo tbl classinfo_members = { \
 
 
 class BigInt {
