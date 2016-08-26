@@ -451,8 +451,42 @@ public:
     
     // BigInt comparison TBD
     
+    
+    // Basic pow2 operation
+    static BigInt pow2 (unsigned n) {
+        BigInt x { 1 };
+        while (n > 0)
+            --n, x *= 2;
+        return x;
+    }
+    static UNITTEST_METHOD(pow2) {
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(0).toString()), "1", "2^0");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(1).toString()), "2", "2^1");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(2).toString()), "4", "2^2");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(3).toString()), "8", "2^3");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(4).toString()), "16", "2^4");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(5).toString()), "32", "2^5");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(6).toString()), "64", "2^6");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(7).toString()), "128", "2^7");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(8).toString()), "256", "2^8");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(16).toString()), "65536", "2^16");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(32).toString()), "4294967296", "2^32");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(64).toString()), "18446744073709551616", "2^64");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(128).toString()), "340282366920938463463374607431768211456", "2^128");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(256).toString()),
+                "115792089237316195423570985008687907853269984665640564039457584007913129639936", "2^256");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(512).toString()),
+                "134078079299425970995740249982058461274793658205923933777235614437217640300735"
+                "46976801874298166903427690031858186486050853753882811946569946433649006084096", "2^512");
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(1024).toString()),
+                "17976931348623159077293051907890247336179769789423065727343008115773267580550"
+                "09631327084773224075360211201138798713933576587897688144166224928474306394741"
+                "24377767893424865485276302219601246094119453082952085005768838150682342462881"
+                "473913110540827237163350510684586298239947245938479716304835356329624224137216", "2^1024");
+    } UNITTEST_END_METHOD
+    
 private:
-    std::vector<char> _tempStr; // Not threadsafe!
+    std::vector<char> _tempStr;
 public:
     const char* toString () {
         _tempStr.clear();
@@ -468,7 +502,8 @@ public:
         RUN_UNITTEST(scalarMultiplyAdd, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(initFromString, UNITTEST_INSTANCE) &&
-        RUN_UNITTEST(writeString, UNITTEST_INSTANCE);
+        RUN_UNITTEST(writeString, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(pow2, UNITTEST_INSTANCE);
     } UNITTEST_END_METHOD
 };
 
