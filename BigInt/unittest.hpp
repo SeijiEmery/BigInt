@@ -122,12 +122,13 @@
         // (eg. collect multiple sub test results into a single test result. passed / attempted
         //  will be incremented by 1 for each collection that testCollection is called on, with
         //  passed incremented iff passed == attempted for that test).
-        UnitTest_Results& checkResults (UnitTest_Results& testCollection, bool printResults = true) {
+        bool checkResults (UnitTest_Results& testCollection, bool printResults = true) {
             if (printResults) reportTestResults();
             
             ++testCollection.attempted;
-            if (passed == attempted) ++testCollection.passed;
-            return testCollection;
+            return passed == attempted ?
+                (++testCollection.passed, true) :
+                false;
         }
         // Print results (optional), and return whether all results
         bool checkResults (bool printResults = true) {
