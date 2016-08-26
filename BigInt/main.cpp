@@ -354,6 +354,41 @@ public:
         return *this;
     }
     static UNITTEST_METHOD(scalarMultiplyAdd) {
+        // Since we've already tested *= and += (we'll assume the above tests passed),
+        // we'll use this test to double check x = x * 10 + n, which is the core of our
+        // decimal-to-binary algorithm.
+        
+        BigInt a { 0 };
+        TEST_ASSERT_EQ(a.sections.size(), 1, "a initial size");
+        TEST_ASSERT_EQ(a.sections[0], 0,     "a[0] initial");
+        
+        a.multiplyAdd(10, 1);
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 1, "a[0] (0) * 10 + 1");
+        
+        a.multiplyAdd(10, 9);
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 19, "a[0] (1) * 10 + 9");
+        
+        a.multiplyAdd(256, 22);
+        TEST_ASSERT_EQ(a.sections.size(), 1);
+        TEST_ASSERT_EQ(a.sections[0], 4886, "a[0] (19) * 256 + 22");
+        
+        // Test with true big int:
+        BigInt b { 0x1210981F, 0xFA093811, 0x9C049814, 0x342981F9 };
+        TEST_ASSERT_EQ(b.sections.size(), 4);
+        TEST_ASSERT_EQ(b.sections[0], 0x1210981F);
+        TEST_ASSERT_EQ(b.sections[1], 0xFA093811);
+        TEST_ASSERT_EQ(b.sections[2], 0x9C049814);
+        TEST_ASSERT_EQ(b.sections[3], 0x342981F9);
+        
+        b.multiplyAdd(256, 5);
+        TEST_ASSERT_EQ(b.sections.size(), 5);
+        TEST_ASSERT_EQ(b.sections[0], 0x10981F05);
+        TEST_ASSERT_EQ(b.sections[1], 0x09381112);
+        TEST_ASSERT_EQ(b.sections[2], 0x049814FA);
+        TEST_ASSERT_EQ(b.sections[3], 0x2981F99C);
+        TEST_ASSERT_EQ(b.sections[4], 0x00000034);
         
     } UNITTEST_END_METHOD
     
@@ -428,6 +463,7 @@ public:
         RUN_UNITTEST(scalarAdd, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(scalarMul, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(scalarDiv, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(scalarMultiplyAdd, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(initFromString, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(writeString, UNITTEST_INSTANCE);
