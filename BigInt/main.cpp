@@ -301,7 +301,7 @@ public:
     BigInt& operator *= (storage::smallInt_t v) {
         storage::smallInt_t carry = 0;
         for (auto i = 0; i < sections.size(); ++i) {
-            auto r = sections[i] * v + carry;
+            auto r = (storage::bigInt_t)sections[i] * (storage::bigInt_t)v + (storage::bigInt_t)carry;
             
             storage::storeIntParts(r, carry, sections[i]);
 //            sections[i] = r & SECTION_BITMASK_LOW;
@@ -320,9 +320,44 @@ public:
         TEST_ASSERT_EQ(a.sections.size(), 1);
         TEST_ASSERT_EQ(a.sections[0], 15);
         
+        a *= storage::MAX;
+        TEST_ASSERT_EQ(a.sections.size(), 2, "15 * storage::MAX");
+        TEST_ASSERT_EQ(a.sections[0], (15L * storage::MAX) % (1L << storage::STORAGE_BITS), "15 * storage::MAX: low bits");
+        TEST_ASSERT_EQ(a.sections[1], (15L * storage::MAX) / (1L << storage::STORAGE_BITS), "15 * storage::MAX: high bits");
         
+        //
+        // Test multiplying a 160-bit big num by a large 32-bit coefficient:
+        //
         
+        // note: reversed
+        //         min value                                       max value
+        BigInt b { 0x28fa9923, 0x49378824, 0xffff99ff, 0xffffffff, 0x22487943 };
+        TEST_ASSERT_EQ(b.sections.size(), 5, "b storage section count");
+        TEST_ASSERT_EQ(b.sections[0], 0x28fa9923, "b[0] initial");
+        TEST_ASSERT_EQ(b.sections[1], 0x49378824, "b[1] initial");
+        TEST_ASSERT_EQ(b.sections[2], 0xffff99ff, "b[2] initial");
+        TEST_ASSERT_EQ(b.sections[3], 0xffffffff, "b[3] initial");
+        TEST_ASSERT_EQ(b.sections[4], 0x22487943, "b[4] initial");
         
+        // Multiply the above big num by a large number
+        b *= 0x59ff2938;
+        
+        // Calculate our expected result manually:
+        size_t MAX_WRAP = 1L << storage::STORAGE_BITS;
+        size_t m0 = (0x28fa9923L * 0x59ff2938L),      x0 = m0 % MAX_WRAP, c0 = m0 / MAX_WRAP;
+        size_t m1 = (0x49378824L * 0x59ff2938L + c0), x1 = m1 % MAX_WRAP, c1 = m1 / MAX_WRAP;
+        size_t m2 = (0xffff99ffL * 0x59ff2938L + c1), x2 = m2 % MAX_WRAP, c2 = m2 / MAX_WRAP;
+        size_t m3 = (0xffffffffL * 0x59ff2938L + c2), x3 = m3 % MAX_WRAP, c3 = m3 / MAX_WRAP;
+        size_t m4 = (0x22487943L * 0x59ff2938L + c3), x4 = m4 % MAX_WRAP, c4 = m4 / MAX_WRAP;
+        
+        // And compare with result:
+        TEST_ASSERT_EQ(b.sections.size(), 6, "should have 6 sections?");
+        TEST_ASSERT_EQ(b.sections[0], x0, "b[0] post-multiply");
+        TEST_ASSERT_EQ(b.sections[1], x1, "b[1] post-multiply");
+        TEST_ASSERT_EQ(b.sections[2], x2, "b[2] post-multiply");
+        TEST_ASSERT_EQ(b.sections[3], x3, "b[3] post-multiply");
+        TEST_ASSERT_EQ(b.sections[4], x4, "b[4] post-multiply");
+        TEST_ASSERT_EQ(b.sections[5], c4, "b[5] post-multiply");
     
     } UNITTEST_END_METHOD
     
