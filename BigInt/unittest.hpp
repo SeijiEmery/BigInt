@@ -97,25 +97,25 @@
         
         UnitTest_Results (const char* name) : name(name) {}
         
-        void assertThat (bool cond, std::string msg, const char* file, size_t line) {
-            if (cond) ++attempted, ++passed;
-            else      ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": " << msg << '\n';
+        bool assertThat (bool cond, std::string msg, const char* file, size_t line) {
+            if (cond) return ++attempted, ++passed, true;
+            else      return ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": " << msg << '\n', false;
         }
-        void assertThat (bool cond, const char* file, size_t line) {
-            if (cond) ++attempted, ++passed;
-            else      ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << '\n';
-        }
-        template <typename A, typename B>
-        void assertEq (const A& a, const B& b, std::string msg, const char* file, size_t line) {
-            if (a == b) ++attempted, ++passed;
-            else        ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": '"
-                << a << "' != '" << b << "' " << msg << '\n';
+        bool assertThat (bool cond, const char* file, size_t line) {
+            if (cond) return ++attempted, ++passed, true;
+            else      return ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << '\n', false;
         }
         template <typename A, typename B>
-        void assertEq (const A& a, const B& b, const char* file, size_t line) {
-            if (a == b) ++attempted, ++passed;
-            else        ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": '"
-                << a << "' != '" << b << "'\n";
+        bool assertEq (const A& a, const B& b, std::string msg, const char* file, size_t line) {
+            if (a == b) return ++attempted, ++passed, true;
+            else        return ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": '"
+                << a << "' != '" << b << "' " << msg << '\n', false;
+        }
+        template <typename A, typename B>
+        bool assertEq (const A& a, const B& b, const char* file, size_t line) {
+            if (a == b) return ++attempted, ++passed, true;
+            else        return ++attempted, std::cerr << "Assertion Failed: " << file << ":" << line << ": '"
+                << a << "' != '" << b << "'\n", false;
         }
         
         // Print results (optional), and collect results into another collection @testCollection.
