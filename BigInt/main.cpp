@@ -97,6 +97,9 @@ private:
     BigInt (std::initializer_list<storage::smallInt_t> values) : sections(values) {}
     BigInt (bool sign, std::initializer_list<storage::smallInt_t> values) : sign(sign), sections(values) {}
     
+    template <bool sign = true>
+    static BigInt create (std::initializer_list<storage::smallInt_t> values) { return { sign, values }; }
+    
 public:
     void initFromString (const char*& s) {
         sections.clear();
@@ -409,6 +412,100 @@ public:
         TEST_ASSERT_EQ(std::string("680564733841876926926749214863536422912"), BigInt::pow2(129).writeString(s).data()); s.clear();
     } UNITTEST_END_METHOD
     
+    operator bool () const { return sections.size() && !(sections.size() == 1 && sections[0] == 0); }
+    
+    int cmp (const BigInt& other) {
+        if (!this->operator bool()) return !other.operator bool() ? 0 : other.sign ? 1 : -1;
+        if (!other.operator bool()) return sign ? -1 : 1;
+        if (sign != other.sign)     return sign ? -1 : 1;
+        assert(sections.size() && other.sections.size());
+        
+        if (sections.size() != other.sections.size())
+            return sections.size() < other.sections.size() ? -2 : 2;
+        
+//        for (auto i = std::min(sections.size(), other.sections.size()); i --> 0; ) {
+        for (auto i = 0; i < std::min(sections.size(), other.sections.size()); ++i) {
+            if (sections[i] < other.sections[i]) return sign ? 1 : -1;
+            if (sections[i] > other.sections[i]) return sign ? -1 : 1;
+        }
+        return 0;
+    }
+    static UNITTEST_METHOD(cmp) {
+#define BINT(sign,args...) BigInt{sign, std::initializer_list<storage::smallInt_t>{args}}
+#define BINT_TEST_CMP(a,b, args...) TEST_ASSERT_EQ(a.cmp(b), args)
+        
+        TEST_ASSERT_EQ(BINT(true,  0).operator bool(), false, "BigInt operator bool ( 0 )");
+        TEST_ASSERT_EQ(BINT(false, 0).operator bool(), false, "BigInt operator bool ( 0 )");
+        TEST_ASSERT_EQ(BINT(true,  1).operator bool(), true,  "BigInt operator bool ( 1 )");
+        TEST_ASSERT_EQ(BINT(true, 24, 12, 99, 84, 239).operator bool(), true, "BigInt operator bool ( ... )");
+        
+        auto a = BINT(true, 0);
+        TEST_ASSERT(a.sections.size()) && (a.sections.pop_back(), true) &&
+        TEST_ASSERT_EQ(a.operator bool(), false);
+        
+        a.sections.push_back(0); TEST_ASSERT_EQ(a.operator bool(), false);
+        a.sections[0] = 1;       TEST_ASSERT_EQ(a.operator bool(), true);
+        
+        BINT_TEST_CMP(BINT(true,  0), BINT(true,  0), 0);
+        BINT_TEST_CMP(BINT(true,  0), BINT(false, 0), 0);
+        BINT_TEST_CMP(BINT(false, 0), BINT(true,  0), 0);
+        BINT_TEST_CMP(BINT(false, 0), BINT(false, 0), 0);
+
+        BINT_TEST_CMP(BINT(true,  42), BINT(true,  42),  0, "42 == 42?");
+        BINT_TEST_CMP(BINT(false, 42), BINT(false, 42),  0, "42 == 42?");
+        BINT_TEST_CMP(BINT(true,  42), BINT(false, 42), -1, "-42 < 42?");
+        BINT_TEST_CMP(BINT(false, 42), BINT(true,  42),  1, "42 > -42?");
+        
+        BINT_TEST_CMP(BINT(true,  42), BINT(false, 0), -1, "-42 < 0?");
+        BINT_TEST_CMP(BINT(false, 42), BINT(false, 0),  1,  "42 > 0?");
+        BINT_TEST_CMP(BINT(true,  42), BINT(true,  0), -1, "-42 < 0?");
+        BINT_TEST_CMP(BINT(false, 42), BINT(true,  0),  1,  "42 > 0?");
+        
+        BINT_TEST_CMP(BINT(true,  42), BINT(true,  41), -1, "-42 < -41?");
+        BINT_TEST_CMP(BINT(false, 42), BINT(false, 43), -1,  "42 < 43?");
+        
+        BINT_TEST_CMP(BINT(true,  42, 299, 384), BINT(true,  42, 299, 384), 0, "-42 299 384 == -42 299 384?");
+        BINT_TEST_CMP(BINT(false, 42, 299, 384), BINT(false, 42, 299, 384), 0, "+42 299 384 == +42 299 384?");
+        
+        BINT_TEST_CMP(BINT(false, 41, 399, 389), BINT(false, 42, 299, 384), -1, "+41 399 389 < +42 299 384?");
+        BINT_TEST_CMP(BINT(true,  41, 399, 389), BINT(true,  42, 299, 384),  1, "-41 399 389 > -42 299 384?");
+        
+        BINT_TEST_CMP(BINT(false, 42, 399, 383), BINT(false, 42, 299, 384), 1, "+42 399 383 > +42 299 384?");
+        BINT_TEST_CMP(BINT(false, 42, 299, 389), BINT(false, 42, 299, 384), 1, "+42 299 389 > +42 299 384?");
+        
+#undef BINT_TEST_CMP
+#undef BINT
+    } UNITTEST_END_METHOD
+    
+    
+    BigInt& operator *= (const BigInt& v) {
+        
+        return *this;
+    }
+    static UNITTEST_METHOD(bigInt_mul) {
+        auto a = BigInt::pow2(39); a *= BigInt::pow2(78);
+        TEST_ASSERT_EQ(std::string(a.toString()), "166153499473114484112975882535043072"); // 2^117
+        TEST_ASSERT_EQ(a, BigInt::pow2(117));
+        
+    } UNITTEST_END_METHOD
+    
+    
+    static UNITTEST_METHOD(bigInt_add) {
+        
+    } UNITTEST_END_METHOD
+    
+    static UNITTEST_METHOD(bigInt_sub) {
+        
+    } UNITTEST_END_METHOD
+    
+    static UNITTEST_METHOD(bigInt_div) {
+        
+    } UNITTEST_END_METHOD
+    
+    
+    
+    
+    
     // Vector (BigInt * BigInt) Addition, Multiplication, Division TBD
     
     // BigInt 2's complement negative numbers TBD
@@ -467,7 +564,12 @@ public:
         RUN_UNITTEST(pushDecimalDigit, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(initFromString, UNITTEST_INSTANCE) &&
         RUN_UNITTEST(writeString, UNITTEST_INSTANCE) &&
-        RUN_UNITTEST(pow2, UNITTEST_INSTANCE);
+        RUN_UNITTEST(pow2, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(cmp, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(bigInt_mul, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(bigInt_add, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(bigInt_sub, UNITTEST_INSTANCE) &&
+        RUN_UNITTEST(bigInt_div, UNITTEST_INSTANCE);
     } UNITTEST_END_METHOD
 };
 
