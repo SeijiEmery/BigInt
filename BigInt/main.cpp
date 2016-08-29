@@ -11,7 +11,7 @@
 #include <cassert>
 
 #define ENABLE_UNITTESTS 1
-#define UNITTEST_REPORT_ON_SUCCESS 1
+#define UNITTEST_REPORT_ON_SUCCESS 0
 #include "unittest.hpp"
 
 namespace storage {
@@ -44,12 +44,10 @@ bigInt_t fromIntParts (smallInt_t high, smallInt_t low) {
     return ((bigInt_t)high << STORAGE_BITS) | (bigInt_t)low;
 }
 UNITTEST_METHOD(fromIntParts) {
-    
     TEST_ASSERT_EQ(fromIntParts(0x15, 0x227), 0x1500000227);
     TEST_ASSERT_EQ(fromIntParts(0x0, (smallInt_t)0xAAAA12847923), 0x12847923);
     TEST_ASSERT_EQ(fromIntParts(0x0, 0x0), 0x0);
     TEST_ASSERT_EQ(fromIntParts(0xAA, 0x0), 0xAA00000000);
-    
 } UNITTEST_END_METHOD
     
 void storeIntParts (bigInt_t v, smallInt_t& high, smallInt_t& low) {
@@ -74,7 +72,6 @@ UNITTEST_METHOD(storeIntParts) {
     storeIntParts(0xAA00000000, a, b);
     TEST_ASSERT_EQ(a, 0xAA);
     TEST_ASSERT_EQ(b, 0x0);
-
 } UNITTEST_END_METHOD
     
 UNITTEST_MAIN_METHOD(storage::unittests) {
@@ -98,6 +95,7 @@ public:
 private:
     // Private constructor for unit tests (unsafe for external code; would need to normalize values)
     BigInt (std::initializer_list<storage::smallInt_t> values) : sections(values) {}
+    BigInt (bool sign, std::initializer_list<storage::smallInt_t> values) : sign(sign), sections(values) {}
     
 public:
     void initFromString (const char*& s) {
@@ -398,9 +396,17 @@ public:
         }
     }
     static UNITTEST_METHOD(writeString) {
+        std::vector<char> s;
+        TEST_ASSERT_EQ(std::string("0"), BigInt{0}.writeString(s).data()); s.clear();
+        TEST_ASSERT_EQ(std::string("1"), BigInt{1}.writeString(s).data()); s.clear();
         
-        // Unit tests TBD
+        typedef std::initializer_list<storage::smallInt_t> iv;
+        TEST_ASSERT_EQ(BigInt{true, iv{24}}.sign, true);
+        TEST_ASSERT_EQ(BigInt{true, iv{24}}.sections.size(), 1);
+        TEST_ASSERT_EQ(BigInt{true, iv{24}}.sections[0], 24);
+        TEST_ASSERT_EQ(std::string("-24"), BigInt{true, iv{24}}.writeString(s).data()); s.clear();
         
+        TEST_ASSERT_EQ(std::string("680564733841876926926749214863536422912"), BigInt::pow2(129).writeString(s).data()); s.clear();
     } UNITTEST_END_METHOD
     
     // Vector (BigInt * BigInt) Addition, Multiplication, Division TBD
