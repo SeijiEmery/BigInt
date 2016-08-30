@@ -96,6 +96,7 @@ private:
     // Private constructor for unit tests (unsafe for external code; would need to normalize values)
     BigInt (std::initializer_list<storage::smallInt_t> values) : sections(values) {}
     BigInt (bool sign, std::initializer_list<storage::smallInt_t> values) : sign(sign), sections(values) {}
+    BigInt () {}
     
     template <bool sign = true>
     static BigInt create (std::initializer_list<storage::smallInt_t> values) { return { sign, values }; }
@@ -374,7 +375,7 @@ public:
         return operator /= ((storage::smallInt_t)v);
     }
     
-    std::vector<char>& writeString (std::vector<char>& str) {
+    std::vector<char>& writeString (std::vector<char>& str, bool writeNull = false) {
         if (sign) str.push_back('-');
         
         if (!sections.size()) {
@@ -395,26 +396,34 @@ public:
             // And then reverse to get correct value
             for (auto i = s0, j = str.size()-1; i < j; ++i, --j)
                 std::swap(str[i], str[j]);
+            
+            if (writeNull)
+                str.push_back('\0');
             return str;
         }
     }
     static UNITTEST_METHOD(writeString) {
         std::vector<char> s;
-        TEST_ASSERT_EQ(std::string("0"), BigInt{0}.writeString(s).data()); s.clear();
-        TEST_ASSERT_EQ(std::string("1"), BigInt{1}.writeString(s).data()); s.clear();
+        TEST_ASSERT_EQ(std::string("0"), BigInt{0}.writeString(s, true).data()); s.clear();
+        TEST_ASSERT_EQ(std::string("1"), BigInt{1}.writeString(s, true).data()); s.clear();
         
         typedef std::initializer_list<storage::smallInt_t> iv;
         TEST_ASSERT_EQ(BigInt{true, iv{24}}.sign, true);
         TEST_ASSERT_EQ(BigInt{true, iv{24}}.sections.size(), 1);
         TEST_ASSERT_EQ(BigInt{true, iv{24}}.sections[0], 24);
-        TEST_ASSERT_EQ(std::string("-24"), BigInt{true, iv{24}}.writeString(s).data()); s.clear();
+        TEST_ASSERT_EQ(std::string("-24"), BigInt{true, iv{24}}.writeString(s, true).data()); s.clear();
         
-        TEST_ASSERT_EQ(std::string("680564733841876926926749214863536422912"), BigInt::pow2(129).writeString(s).data()); s.clear();
+        TEST_ASSERT_EQ(std::string("680564733841876926926749214863536422912"), BigInt::pow2(129).writeString(s, true).data()); s.clear();
     } UNITTEST_END_METHOD
     
     operator bool () const { return sections.size() && !(sections.size() == 1 && sections[0] == 0); }
     
-    int cmp (const BigInt& other) {
+    bool operator == (const BigInt& other) const { return this->cmp(other) == 0; }
+    bool operator <= (const BigInt& other) const { return this->cmp(other) <= 0; }
+    bool operator >= (const BigInt& other) const { return this->cmp(other) >= 0; }
+    
+    
+    int cmp (const BigInt& other) const {
         if (!this->operator bool()) return !other.operator bool() ? 0 : other.sign ? 1 : -1;
         if (!other.operator bool()) return sign ? -1 : 1;
         if (sign != other.sign)     return sign ? -1 : 1;
@@ -473,19 +482,64 @@ public:
         BINT_TEST_CMP(BINT(false, 42, 399, 383), BINT(false, 42, 299, 384), 1, "+42 399 383 > +42 299 384?");
         BINT_TEST_CMP(BINT(false, 42, 299, 389), BINT(false, 42, 299, 384), 1, "+42 299 389 > +42 299 384?");
         
+        BINT_TEST_CMP(BigInt::pow2(229), BigInt::pow2(229), 0);
+        BINT_TEST_CMP(BigInt::pow2(230), BigInt::pow2(229), 1);
+        BINT_TEST_CMP(BigInt::pow2(229), BigInt::pow2(230), -1);
+        
 #undef BINT_TEST_CMP
 #undef BINT
     } UNITTEST_END_METHOD
     
-    
-    BigInt& operator *= (const BigInt& v) {
+    BigInt operator * (const BigInt & v) {
         
-        return *this;
+        // Zero case
+        if (!operator bool() || !v.operator bool()) {
+            return sections.clear(), *this;
+        }
+        
+        // Otherwise, prepare to multiply, and reserve space for new digits
+        BigInt r; r.sections.resize(sections.size() + v.sections.size(), 0);
+        
+        storage::smallInt_t carry;
+        for (auto i = 0; i < sections.size(); ++i) {
+            for (auto j = 0; j < v.sections.size(); ++j) {
+                auto p = (storage::bigInt_t)sections[i] * (storage::bigInt_t)v.sections[j] + (storage::bigInt_t)r.sections[i+j];
+                storage::storeIntParts(p, carry, r.sections[i+j]);
+                
+                for (auto k = i+j+1; carry != 0; ++k) {
+                    if (k > r.sections.size()) {
+                        r.sections.push_back(carry); break;
+                    } else {
+                        auto s = (storage::bigInt_t)r.sections[k] + (storage::bigInt_t)carry;
+                        storage::storeIntParts(s, carry, r.sections[k]);
+                    }
+                }
+            }
+        }
+        return r;
     }
+    
     static UNITTEST_METHOD(bigInt_mul) {
-        auto a = BigInt::pow2(39); a *= BigInt::pow2(78);
-        TEST_ASSERT_EQ(std::string(a.toString()), "166153499473114484112975882535043072"); // 2^117
-        TEST_ASSERT_EQ(a, BigInt::pow2(117));
+        auto a = BigInt::pow2(39) * BigInt::pow2(78);
+        TEST_ASSERT_EQ(std::string(BigInt::pow2(117).toString()), "166153499473114484112975882535043072");
+
+        auto x = BigInt("92837508234109812317501984209810928409182094187192");
+        auto y = BigInt("19874891279817498172489713987498173849713897489171");
+        auto z = x * y;
+        
+        auto zero = BigInt{0};
+        auto one  = BigInt{1};
+        
+        TEST_ASSERT_EQ(std::string(x.toString()), "92837508234109812317501984209810928409182094187192");
+        TEST_ASSERT_EQ(std::string(y.toString()), "19874891279817498172489713987498173849713897489171");
+        TEST_ASSERT_EQ(std::string(z.toString()), "18451353828420942924773305110003083474370975946120"
+                                                  "06265189858865520503519713569495483976002866897832");
+        TEST_ASSERT_EQ(z, z);
+        TEST_ASSERT_EQ(z * 1, z);
+        TEST_ASSERT_EQ(z * 0, x * 0);
+        TEST_ASSERT_EQ(std::string((z * zero).toString()), "0");
+        TEST_ASSERT_EQ(z * one,  z);
+        TEST_ASSERT_EQ(z * zero, zero);
         
     } UNITTEST_END_METHOD
     
@@ -573,7 +627,7 @@ public:
     } UNITTEST_END_METHOD
 };
 
-std::ostream& operator << (std::ostream& os, BigInt& v) {
+std::ostream& operator << (std::ostream& os, BigInt v) {
     return os << v.toString();
 }
 
@@ -600,5 +654,9 @@ int main(int argc, const char * argv[]) {
         v *= 2;
         i += 1;
     }
+    
+    auto n = 32768; // 2^15; will calculate by bruteforcing x *= 2 n times.
+    std::cout << "2^" << n << " = " << BigInt::pow2(n) << '\n';
+    
     return 0;
 }
