@@ -518,7 +518,6 @@ public:
         }
         return r;
     }
-    
     static UNITTEST_METHOD(bigInt_mul) {
         auto a = BigInt::pow2(39) * BigInt::pow2(78);
         TEST_ASSERT_EQ(std::string(BigInt::pow2(117).toString()), "166153499473114484112975882535043072");
@@ -542,6 +541,33 @@ public:
         TEST_ASSERT_EQ(z * zero, zero);
         
     } UNITTEST_END_METHOD
+    
+    BigInt& operator += (const BigInt& v) {
+        // Zero case
+        if (!v) return *this;
+        
+        sections.resize(std::max(sections.size(), v.sections.size()) + 1, 0);
+        storage::smallInt_t carry = 0;
+        
+        auto i = 0;
+        for (; i < v.sections.size(); ++i) {
+            auto s = (storage::bigInt_t)sections[i] + (storage::bigInt_t)v.sections[i] + carry;
+            storage::storeIntParts(s, carry, sections[i]);
+        }
+        for (; carry && i < sections.size(); ++i) {
+            auto s = (storage::bigInt_t)sections[i] + carry;
+            storage::storeIntParts(s, carry, sections[i]);
+        }
+        if (carry) sections.push_back(carry);
+        return *this;
+    }
+    BigInt operator+ (const BigInt& v) const {
+        BigInt temp { *this };
+        temp += v;
+        return *this;
+    }
+    
+    
     
     
     static UNITTEST_METHOD(bigInt_add) {
