@@ -5,25 +5,22 @@ basic algorithms to add and multiply arbitrary-size numbers. All of this is base
 on paper calculations – I didn't just copy something from the internet – which is
 why it's unfinished and probably not optimal.
 
-This project demonstrates:
-    – Algorithms for performing some arithmetic operations on arbitrary-size 
-      integers, and efficient storage of those integers. 
-    – Thorough unittesting
-    – A small, minimalistic unittesting library (unittest.hpp), also posted here:
-      https://gist.github.com/SeijiEmery/8351b7f41241b3eaa0b47b056d80008c
+### This project demonstrates:
+* Algorithms for performing some arithmetic operations on arbitrary-size integers, and efficient storage of those integers. 
+* Thorough unittesting
+* A small, minimalistic unittesting library (unittest.hpp), also posted here: https://gist.github.com/SeijiEmery/8351b7f41241b3eaa0b47b056d80008c
 
-Features:
-    – read / write to / from string
-    – BigInt + i32
-    – BigInt * i32 + i32
-    – BigInt * i32
-    – BigInt / i32
-    – BigInt * BigInt
-    – BigInt ** i32    (can calculate 2 ** (2 ** 15) very quickly, then do further ops)
-    – comparison, zero-checking
-    – negative numbers were not implemented properly
-    – addition / subtraction of bignums were not implemented for some reason;
-      this was an extracurricular project, so I ran out of time
+### Features:
+* read / write to / from string
+* BigInt + i32
+* BigInt * i32 + i32
+* BigInt * i32
+* BigInt / i32
+* BigInt * BigInt
+* BigInt ** i32    (can calculate 2 ** (2 ** 15) very quickly, then do further ops)
+* comparison, zero-checking
+* negative numbers were not implemented properly
+* addition / subtraction of bignums were not implemented for some reason; this was an extracurricular project, so I ran out of time
 
 
 On the unittesting library: This is *not* difficult to implement, and I thought
